@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student Marks Table with Sorting and Filtering</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+    label {
+      font-size: 14px;
+    }
+    input, select, button {
+      padding: 5px 8px;
+      font-size: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #e0e0e0;
+      cursor: pointer;
+      user-select: none;
+    }
+    th span.sort-indicator {
+      font-size: 12px;
+      margin-left: 4px;
+      color: #555;
+    }
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+    .no-data {
+      text-align: center;
+      padding: 10px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>Student Marks Table</h1>
+
+  <div class="controls">
+    <label>
+      Filter Subject:
+      <select id="subjectFilter">
+        <option value="all">All</option>
+        <option value="maths">Maths</option>
+        <option value="science">Science</option>
+        <option value="english">English</option>
+      </select>
+    </label>
+
+    <label>
+      Min Score:
+      <input type="number" id="minScore" />
+    </label>
+
+    <label>
+      Max Score:
+      <input type="number" id="maxScore" />
+    </label>
+
+    <button id="applyFilterBtn">Apply Filter</button>
+    <button id="clearFilterBtn">Clear Filter</button>
+  </div>
+
+  <table id="marksTable">
+    <thead>
+      <tr>
+        <th data-key="name">Student Name <span class="sort-indicator"></span></th>
+        <th data-key="maths">Maths <span class="sort-indicator"></span></th>
+        <th data-key="science">Science <span class="sort-indicator"></span></th>
+        <th data-key="english">English <span class="sort-indicator"></span></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const students = [
+      { name: "Aarav",  maths: 78, science: 85, english: 72 },
+      { name: "Diya",   maths: 92, science: 88, english: 95 },
+      { name: "Rahul",  maths: 65, science: 70, english: 60 },
+      { name: "Sneha",  maths: 88, science: 90, english: 80 },
+      { name: "Karan",  maths: 55, science: 60, english: 58 },
+      { name: "Meera",  maths: 81, science: 75, english: 89 }
+    ];
+
+    let currentData = [...students];
+
+    const sortState = {
+      name: null,
+      maths: null,
+      science: null,
+      english: null
+    };
+
+    const tableBody = document.querySelector("#marksTable tbody");
+    const headerCells = document.querySelectorAll("#marksTable thead th");
+
+    const subjectFilter = document.getElementById("subjectFilter");
+    const minScoreInput = document.getElementById("minScore");
+    const maxScoreInput = document.getElementById("maxScore");
+    const applyFilterBtn = document.getElementById("applyFilterBtn");
+    const clearFilterBtn = document.getElementById("clearFilterBtn");
+
+    function renderTable(data) {
+      tableBody.innerHTML = "";
+      if (data.length === 0) {
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+        cell.colSpan = 4;
+        cell.className = "no-data";
+        cell.textContent = "No records found";
+        row.appendChild(cell);
+        tableBody.appendChild(row);
+        return;
+      }
+
+      data.forEach(student => {
+        const row = document.createElement("tr");
+
+        const nameCell = document.createElement("td");
+        nameCell.textContent = student.name;
+        row.appendChild(nameCell);
+
+        const mathsCell = document.createElement("td");
+        mathsCell.textContent = student.maths;
+        row.appendChild(mathsCell);
+
+        const scienceCell = document.createElement("td");
+        scienceCell.textContent = student.science;
+        row.appendChild(scienceCell);
+
+        const englishCell = document.createElement("td");
+        englishCell.textContent = student.english;
+        row.appendChild(englishCell);
+
+        tableBody.appendChild(row);
+      });
+    }
+
+    function sortBy(columnKey) {
+      const currentDirection = sortState[columnKey];
+      const newDirection = currentDirection === "asc" ? "desc" : "asc";
+      sortState[columnKey] = newDirection;
+
+      currentData.sort((a, b) => {
+        let valA = a[columnKey];
+        let valB = b[columnKey];
+
+        if (columnKey === "name") {
+          valA = valA.toLowerCase();
+          valB = valB.toLowerCase();
+          if (valA < valB) return newDirection === "asc" ? -1 : 1;
+          if (valA > valB) return newDirection === "asc" ? 1 : -1;
+          return 0;
+        }
+        return newDirection === "asc" ? valA - valB : valB - valA;
+      });
+
+      updateSortIndicators(columnKey, newDirection);
+      renderTable(currentData);
+    }
+
+    function updateSortIndicators(activeKey, direction) {
+      headerCells.forEach(th => {
+        const span = th.querySelector(".sort-indicator");
+        const key = th.getAttribute("data-key");
+        if (!span) return;
+
+        if (key === activeKey) {
+          span.textContent = direction === "asc" ? "▲" : "▼";
+        } else {
+          span.textContent = "";
+        }
+      });
+    }
+
+    headerCells.forEach(th => {
+      th.addEventListener("click", () => {
+        const key = th.getAttribute("data-key");
+        sortBy(key);
+      });
+    });
+
+    function applyFilter() {
+      const subject = subjectFilter.value;
+      const minScore = minScoreInput.value ? Number(minScoreInput.value) : null;
+      const maxScore = maxScoreInput.value ? Number(maxScoreInput.value) : null;
+
+      currentData = students.filter(student => {
+        let scoreToCheck = null;
+        if (subject === "maths") scoreToCheck = student.maths;
+        else if (subject === "science") scoreToCheck = student.science;
+        else if (subject === "english") scoreToCheck = student.english;
+        else scoreToCheck = null;
+
+        let pass = true;
+
+        if (scoreToCheck !== null) {
+          if (minScore !== null && scoreToCheck < minScore) pass = false;
+          if (maxScore !== null && scoreToCheck > maxScore) pass = false;
+        } else {
+          if (minScore !== null || maxScore !== null) {
+            const scores = [student.maths, student.science, student.english];
+            const inRange = scores.some(mark => {
+              if (minScore !== null && mark < minScore) return false;
+              if (maxScore !== null && mark > maxScore) return false;
+              return true;
+            });
+            pass = inRange;
+          }
+        }
+        return pass;
+      });
+
+      Object.keys(sortState).forEach(k => (sortState[k] = null));
+      updateSortIndicators(null, null);
+
+      renderTable(currentData);
+    }
+
+    function clearFilter() {
+      subjectFilter.value = "all";
+      minScoreInput.value = "";
+      maxScoreInput.value = "";
+      currentData = [...students];
+
+      Object.keys(sortState).forEach(k => (sortState[k] = null));
+      updateSortIndicators(null, null);
+
+      renderTable(currentData);
+    }
+
+    applyFilterBtn.addEventListener("click", applyFilter);
+    clearFilterBtn.addEventListener("click", clearFilter);
+
+    renderTable(currentData);
+  </script>
+</body>
+</html>
